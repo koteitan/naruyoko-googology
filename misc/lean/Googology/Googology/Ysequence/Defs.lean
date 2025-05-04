@@ -355,7 +355,7 @@ def shell {x : Mountain} (h : x.IsLimit) (n : ℕ) : ParentMountain :=
           finIco
               ⟨((badroot ..).get h.badroot_isSome).val.fst,
                 Nat.lt_add_right 1 (Index₂.val_fst_lt _)⟩
-              ⟨x.values.val.length, Nat.lt_add_of_pos_right Nat.zero_lt_one⟩ |>.map
+              ⟨x.values.val.length - 1, Nat.sub_lt_succ ..⟩ |>.map
             fun i => copySeam h i k).flatten,
     by
     intro l hl
