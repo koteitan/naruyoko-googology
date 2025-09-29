@@ -157,6 +157,47 @@ Term.build=function (s,context){
       var nextnext=scanner.next();
       if (nextnext!="}") throw Error("Expected closing } at position "+(scanner.pos-1)+", instead got "+nextnext+" in expression "+scanner.s);
       appendToRSum(subterm);
+    }else if (nextWord=="ψ"||nextWord=="p"||nextWord=="psi"){
+      if (state!=START&&state!=PLUS) throw Error("Unexpected character "+next+" at position "+scanpos+" in expression "+scanner.s);
+      var subterms=[];
+      var nextnext=scanner.next();
+      if (nextnext!="_"&&nextnext!="(") throw Error("Expected _ or ( at position "+(scanner.pos-1)+", instead got "+nextnext+" in expression "+scanner.s);
+      if (nextnext=="_"){
+        subterms.push(Term.build(scanner,LETTERTERMSUBSCRIPT));
+        var nextnext=scanner.next();
+        if (nextnext!="(") throw Error("Expected opening ( at position "+(scanner.pos-1)+", instead got "+nextnext+" in expression "+scanner.s);
+      }
+      while (subterms.length<2){
+        subterms.push(Term.build(scanner,LETTERTERMINNER));
+        var nextnext=scanner.next();
+        if (nextnext==","){
+          if (subterms.length>=2) throw Error("Too many terms in ψ term at position "+scanpos+" in expression "+scanner.s);
+        }else if (nextnext==")") break;
+        else throw Error("Expected a comma or closing ) at position "+(scanner.pos-1)+", instead got "+nextnext+" in expression "+scanner.s);
+      }
+      while (subterms.length<2) subterms.unshift(ZeroTerm.build());
+      appendToRSum(PsiTerm.buildNoClone.apply(null,subterms));
+    }else if (nextWord=="θ"||nextWord=="t"||nextWord=="theta"){
+      if (state!=START&&state!=PLUS) throw Error("Unexpected character "+next+" at position "+scanpos+" in expression "+scanner.s);
+      var subterms=[];
+      var nextnext=scanner.next();
+      if (nextnext!="_"&&nextnext!="(") throw Error("Expected _ or ( at position "+(scanner.pos-1)+", instead got "+nextnext+" in expression "+scanner.s);
+      if (nextnext=="_"){
+        subterms.push(Term.build(scanner,LETTERTERMSUBSCRIPT));
+        var nextnext=scanner.next();
+        if (nextnext!="(") throw Error("Expected opening ( at position "+(scanner.pos-1)+", instead got "+nextnext+" in expression "+scanner.s);
+      }
+      while (subterms.length<2){
+        subterms.push(Term.build(scanner,LETTERTERMINNER));
+        var nextnext=scanner.next();
+        if (nextnext==","){
+          if (subterms.length>=2) throw Error("Too many terms in Ω term at position "+scanpos+" in expression "+scanner.s);
+        }else if (nextnext==")") break;
+        else throw Error("Expected a comma or closing ) at position "+(scanner.pos-1)+", instead got "+nextnext+" in expression "+scanner.s);
+      }
+      while (subterms.length<1) subterms.unshift(ZeroTerm.build());
+      if (subterms.length==1) subterms.unshift(Term.ONE.clone());
+      appendToRSum(ThetaTerm.buildNoClone.apply(null,subterms));
     }else if (nextWord=="Ω"||nextWord=="W"){
       if (state!=START&&state!=PLUS) throw Error("Unexpected character "+next+" at position "+scanpos+" in expression "+scanner.s);
       var subterms=[];
@@ -178,26 +219,6 @@ Term.build=function (s,context){
       while (subterms.length<1) subterms.unshift(ZeroTerm.build());
       if (subterms.length==1) subterms.unshift(Term.ONE.clone());
       appendToRSum(OmegaTerm.buildNoClone.apply(null,subterms));
-    }else if (nextWord=="ψ"||nextWord=="p"||nextWord=="psi"){
-      if (state!=START&&state!=PLUS) throw Error("Unexpected character "+next+" at position "+scanpos+" in expression "+scanner.s);
-      var subterms=[];
-      var nextnext=scanner.next();
-      if (nextnext!="_"&&nextnext!="(") throw Error("Expected _ or ( at position "+(scanner.pos-1)+", instead got "+nextnext+" in expression "+scanner.s);
-      if (nextnext=="_"){
-        subterms.push(Term.build(scanner,LETTERTERMSUBSCRIPT));
-        var nextnext=scanner.next();
-        if (nextnext!="(") throw Error("Expected opening ( at position "+(scanner.pos-1)+", instead got "+nextnext+" in expression "+scanner.s);
-      }
-      while (subterms.length<2){
-        subterms.push(Term.build(scanner,LETTERTERMINNER));
-        var nextnext=scanner.next();
-        if (nextnext==","){
-          if (subterms.length>=2) throw Error("Too many terms in ψ term at position "+scanpos+" in expression "+scanner.s);
-        }else if (nextnext==")") break;
-        else throw Error("Expected a comma or closing ) at position "+(scanner.pos-1)+", instead got "+nextnext+" in expression "+scanner.s);
-      }
-      while (subterms.length<2) subterms.unshift(ZeroTerm.build());
-      appendToRSum(PsiTerm.buildNoClone.apply(null,subterms));
     }else{
       throw Error("Unexpected character "+next+" at position "+scanpos+" in expression "+scanner.s);
     }
@@ -335,63 +356,6 @@ Object.defineProperty(ZeroTerm.prototype,"constructor",{
  * @extends {Term}
  * @constructor
  * @param {*} s
- * @returns {OmegaTerm}
- */
-function OmegaTerm(s){
-  if (s instanceof OmegaTerm) return s.clone();
-  else if (s instanceof Term&&typeof s!="string") throw Error("Invalid expression: "+s);
-  if (!(this instanceof OmegaTerm)) return new OmegaTerm(s);
-  /** @type {OmegaTerm} */
-  Term.call(this,s);
-  if (s&&!(this instanceof OmegaTerm)) throw Error("Invalid expression: "+s);
-  /** @type {Term} */
-  this.sub=null;
-  /** @type {Term} */
-  this.inner=null;
-}
-Object.assign(OmegaTerm,Term);
-OmegaTerm.build=function (sub,inner){
-  var r=new OmegaTerm();
-  r.sub=new Term(sub);
-  r.inner=new Term(inner);
-  return r;
-}
-/**
- * @param {Term} sub
- * @param {Term} inner
- * @returns {OmegaTerm}
- */
-OmegaTerm.buildNoClone=function (sub,inner){
-  var r=new OmegaTerm();
-  r.sub=sub;
-  r.inner=inner;
-  return r;
-}
-OmegaTerm.prototype=Object.create(Term.prototype);
-OmegaTerm.prototype.clone=function (){
-  return OmegaTerm.build(this.sub,this.inner);
-}
-/** @param {boolean} abbreviate */
-OmegaTerm.prototype.toString=function (abbreviate){
-  if (abbreviate){
-    if ((abbreviate===true||abbreviate["2Ω"])) return "Ω_"+this.sub.toString(abbreviate)+"("+this.inner.toString(abbreviate)+")";
-  }
-  return "Ω("+this.sub.toString(abbreviate)+","+this.inner.toString(abbreviate)+")";
-}
-OmegaTerm.prototype.equal=function (other){
-  if (!(other instanceof Term)) other=new Term(other);
-  return other instanceof OmegaTerm&&this.sub.equal(other.sub)&&this.inner.equal(other.inner);
-}
-Object.defineProperty(OmegaTerm.prototype,"constructor",{
-  value:OmegaTerm,
-  enumerable:false,
-  writable:true
-});
-
-/**
- * @extends {Term}
- * @constructor
- * @param {*} s
  * @returns {PsiTerm}
  */
 function PsiTerm(s){
@@ -444,6 +408,120 @@ PsiTerm.prototype.equal=function (other){
 }
 Object.defineProperty(PsiTerm.prototype,"constructor",{
   value:PsiTerm,
+  enumerable:false,
+  writable:true
+});
+
+/**
+ * @extends {Term}
+ * @constructor
+ * @param {*} s
+ * @returns {ThetaTerm}
+ */
+function ThetaTerm(s){
+  if (s instanceof ThetaTerm) return s.clone();
+  else if (s instanceof Term&&typeof s!="string") throw Error("Invalid expression: "+s);
+  if (!(this instanceof ThetaTerm)) return new ThetaTerm(s);
+  /** @type {ThetaTerm} */
+  Term.call(this,s);
+  if (s&&!(this instanceof ThetaTerm)) throw Error("Invalid expression: "+s);
+  /** @type {Term} */
+  this.sub=null;
+  /** @type {Term} */
+  this.inner=null;
+}
+Object.assign(ThetaTerm,Term);
+ThetaTerm.build=function (sub,inner){
+  var r=new ThetaTerm();
+  r.sub=new Term(sub);
+  r.inner=new Term(inner);
+  return r;
+}
+/**
+ * @param {Term} sub
+ * @param {Term} inner
+ * @returns {ThetaTerm}
+ */
+ThetaTerm.buildNoClone=function (sub,inner){
+  var r=new ThetaTerm();
+  r.sub=sub;
+  r.inner=inner;
+  return r;
+}
+ThetaTerm.prototype=Object.create(Term.prototype);
+ThetaTerm.prototype.clone=function (){
+  return ThetaTerm.build(this.sub,this.inner);
+}
+/** @param {boolean} abbreviate */
+ThetaTerm.prototype.toString=function (abbreviate){
+  if (abbreviate){
+    if ((abbreviate===true||abbreviate["2θ"])) return "θ_"+this.sub.toString(abbreviate)+"("+this.inner.toString(abbreviate)+")";
+  }
+  return "θ("+this.sub.toString(abbreviate)+","+this.inner.toString(abbreviate)+")";
+}
+ThetaTerm.prototype.equal=function (other){
+  if (!(other instanceof Term)) other=new Term(other);
+  return other instanceof ThetaTerm&&this.sub.equal(other.sub)&&this.inner.equal(other.inner);
+}
+Object.defineProperty(ThetaTerm.prototype,"constructor",{
+  value:ThetaTerm,
+  enumerable:false,
+  writable:true
+});
+
+/**
+ * @extends {Term}
+ * @constructor
+ * @param {*} s
+ * @returns {OmegaTerm}
+ */
+function OmegaTerm(s){
+  if (s instanceof OmegaTerm) return s.clone();
+  else if (s instanceof Term&&typeof s!="string") throw Error("Invalid expression: "+s);
+  if (!(this instanceof OmegaTerm)) return new OmegaTerm(s);
+  /** @type {OmegaTerm} */
+  Term.call(this,s);
+  if (s&&!(this instanceof OmegaTerm)) throw Error("Invalid expression: "+s);
+  /** @type {Term} */
+  this.sub=null;
+  /** @type {Term} */
+  this.inner=null;
+}
+Object.assign(OmegaTerm,Term);
+OmegaTerm.build=function (sub,inner){
+  var r=new OmegaTerm();
+  r.sub=new Term(sub);
+  r.inner=new Term(inner);
+  return r;
+}
+/**
+ * @param {Term} sub
+ * @param {Term} inner
+ * @returns {OmegaTerm}
+ */
+OmegaTerm.buildNoClone=function (sub,inner){
+  var r=new OmegaTerm();
+  r.sub=sub;
+  r.inner=inner;
+  return r;
+}
+OmegaTerm.prototype=Object.create(Term.prototype);
+OmegaTerm.prototype.clone=function (){
+  return OmegaTerm.build(this.sub,this.inner);
+}
+/** @param {boolean} abbreviate */
+OmegaTerm.prototype.toString=function (abbreviate){
+  if (abbreviate){
+    if ((abbreviate===true||abbreviate["2Ω"])) return "Ω_"+this.sub.toString(abbreviate)+"("+this.inner.toString(abbreviate)+")";
+  }
+  return "Ω("+this.sub.toString(abbreviate)+","+this.inner.toString(abbreviate)+")";
+}
+OmegaTerm.prototype.equal=function (other){
+  if (!(other instanceof Term)) other=new Term(other);
+  return other instanceof OmegaTerm&&this.sub.equal(other.sub)&&this.inner.equal(other.inner);
+}
+Object.defineProperty(OmegaTerm.prototype,"constructor",{
+  value:OmegaTerm,
   enumerable:false,
   writable:true
 });
@@ -574,8 +652,9 @@ function inT(t){
   }
   if (t instanceof ZeroTerm) return true; //1
   if (t instanceof SumTerm) return t.terms.every(inPT); //2
-  if (t instanceof OmegaTerm) return inT(t.sub)&&inT(t.inner); //3
-  if (t instanceof PsiTerm) return inT(t.sub)&&inT(t.inner); //4
+  if (t instanceof PsiTerm) return inT(t.sub)&&inT(t.inner); //3
+  if (t instanceof ThetaTerm) return inT(t.sub)&&inT(t.inner); //4
+  if (t instanceof OmegaTerm) return inT(t.sub)&&inT(t.inner); //5
   return false;
 }
 function inPT(t){
@@ -584,19 +663,9 @@ function inPT(t){
   }catch(e){
     return false;
   }
-  if (t instanceof OmegaTerm) return inT(t.sub)&&inT(t.inner); //3
-  if (t instanceof PsiTerm) return inT(t.sub)&&inT(t.inner); //4
-  return false;
-}
-/** @returns {boolean} */
-function inRTOmega(t){
-  try{
-    if (!(t instanceof Term)) t=new Term(t);
-  }catch(e){
-    return false;
-  }
-  if (t instanceof ZeroTerm) return true; //1
-  if (t instanceof OmegaTerm) return isNatPlusNonZero(t.sub)&&inRT(t.inner); //3
+  if (t instanceof PsiTerm) return inT(t.sub)&&inT(t.inner); //3
+  if (t instanceof ThetaTerm) return inT(t.sub)&&inT(t.inner); //4
+  if (t instanceof OmegaTerm) return inT(t.sub)&&inT(t.inner); //5
   return false;
 }
 /** @returns {boolean} */
@@ -608,8 +677,9 @@ function inRT(t){
   }
   if (t instanceof ZeroTerm) return true; //1
   if (t instanceof SumTerm) return t.terms.every(inRPT); //2
-  if (t instanceof OmegaTerm) return isNatPlusNonZero(t.sub)&&inRT(t.inner); //3
-  if (t instanceof PsiTerm) return inRTOmega(t.sub)&&inRT(t.inner); //4
+  if (t instanceof PsiTerm) return isNat(t.sub)&&inRT(t.inner); //3
+  if (t instanceof ThetaTerm) return isNat(t.sub)&&inRT(t.inner); //4
+  if (t instanceof OmegaTerm) return isNatPlus(t.sub)&&inRT(t.inner); //5
   return false;
 }
 function inRPT(t){
@@ -618,8 +688,9 @@ function inRPT(t){
   }catch(e){
     return false;
   }
-  if (t instanceof OmegaTerm) return isNatPlusNonZero(t.sub)&&inRT(t.inner); //3
-  if (t instanceof PsiTerm) return inRTOmega(t.sub)&&inRT(t.inner); //4
+  if (t instanceof PsiTerm) return isNat(t.sub)&&inRT(t.inner); //3
+  if (t instanceof ThetaTerm) return isNat(t.sub)&&inRT(t.inner); //4
+  if (t instanceof OmegaTerm) return isNatPlus(t.sub)&&inRT(t.inner); //5
   return false;
 }
 /**
@@ -629,6 +700,30 @@ function inRPT(t){
 function isSumAndTermsSatisfy(t,f){
   return t instanceof SumTerm&&t.terms.every(f);
 }
+function isNat(t){
+  try{
+    if (!(t instanceof Term)) t=new Term(t);
+  }catch(e){
+    return false;
+  }
+  return t instanceof Term&&(t.equal(Term.ZERO)||t.equal(Term.ONE)||isSumAndTermsSatisfy(t,equalFunc(Term.ONE)));
+}
+function isNatNonZero(t){
+  try{
+    if (!(t instanceof Term)) t=new Term(t);
+  }catch(e){
+    return false;
+  }
+  return t instanceof Term&&(t.equal(Term.ONE)||isSumAndTermsSatisfy(t,equalFunc(Term.ONE)));
+}
+function isNatPlus(t){
+  try{
+    if (!(t instanceof Term)) t=new Term(t);
+  }catch(e){
+    return false;
+  }
+  return t instanceof Term&&(t.equal(Term.ZERO)||t.equal(Term.ONE)||isSumAndTermsSatisfy(t,equalFunc(Term.ONE))||t.equal(Term.SMALLOMEGA));
+}
 function isNatPlusNonZero(t){
   try{
     if (!(t instanceof Term)) t=new Term(t);
@@ -637,9 +732,10 @@ function isNatPlusNonZero(t){
   }
   return t instanceof Term&&(t.equal(Term.ONE)||isSumAndTermsSatisfy(t,equalFunc(Term.ONE))||t.equal(Term.SMALLOMEGA));
 }
-function toNatPlusNonZero(t){
+function toNatPlus(t){
   if (!(t instanceof Term)) t=new Term(t);
-  if (!isNatPlusNonZero(t)) throw Error("Invalid argument: "+t);
+  if (!isNatPlus(t)) throw Error("Invalid argument: "+t);
+  if (t instanceof ZeroTerm) return 0;
   if (t instanceof PsiTerm) return t.equal(Term.ONE)?1:Infinity;
   if (t instanceof SumTerm) return t.terms.length;
   throw Error("This should be unreachable");
@@ -702,40 +798,70 @@ function lessThan(S,T){
     if (T instanceof OmegaTerm) return lessThan(S.getLeft(),T); //3.2
     if (T instanceof PsiTerm) return lessThan(S.getLeft(),T); //3.3
   }
-  if (S instanceof OmegaTerm){ //4
+  if (S instanceof PsiTerm){ //4
     if (T instanceof SumTerm) return lessThanOrEqual(S,T.getLeft()); //4.1
-    if (T instanceof OmegaTerm) //4.2
+    if (T instanceof PsiTerm) //4.2
       return lessThan(S.sub,T.sub) //4.2.1
         ||equal(S.sub,T.sub)&&lessThan(S.inner,T.inner); //4.2.2
-    if (T instanceof PsiTerm) return false; //4.3
+    if (T instanceof ThetaTerm) return true; //4.3
+    if (T instanceof OmegaTerm) return true; //4.4
   }
-  if (S instanceof PsiTerm){ //5
+  if (S instanceof ThetaTerm){ //5
     if (T instanceof SumTerm) return lessThanOrEqual(S,T.getLeft()); //5.1
-    if (T instanceof OmegaTerm) return true; //5.2
-    if (T instanceof PsiTerm) //5.3
+    if (T instanceof PsiTerm) return false; //5.2
+    if (T instanceof ThetaTerm) //5.3
       return lessThan(S.sub,T.sub) //5.3.1
         ||equal(S.sub,T.sub)&&lessThan(S.inner,T.inner); //5.3.2
+    if (T instanceof OmegaTerm) return true; //5.4
+  }
+  if (S instanceof OmegaTerm){ //6
+    if (T instanceof SumTerm) return lessThanOrEqual(S,T.getLeft()); //6.1
+    if (T instanceof PsiTerm) return false; //6.2
+    if (T instanceof ThetaTerm) return false; //6.3
+    if (T instanceof OmegaTerm) return lessThan(S.inner,T.inner); //6.4
   }
   throw Error("No rule to compute if "+S+"<"+T);
 }
 /**
  * @param {Term|string} bp
- * @param {Term|string} br
- * @returns {number}
+ * @param {number} br
+ * @returns {string} δ(bp,br)
  */
-function deg(bp,br){
+function delta(bp,br){
   if (!(bp instanceof Term)) bp=new Term(bp);
-  if (!inRT(bp)||!inRT(br)) throw Error("Invalid argument: "+bp+","+br);
-  if (bp instanceof ZeroTerm) return 0; //1
-  if (bp instanceof SumTerm) return Math.max.apply(null,bp.terms.map(function (t){return deg(t,br);})); //2
-  if (bp instanceof OmegaTerm){ //3
-    var a=toNatPlusNonZero(bp.sub);
-    var b=bp.inner;
-    if (a!=Infinity&&br<bp) return Infinity; //3.1
-    else return deg(b,br); //3.2
+  if (!inRT(bp)||typeof br!="number") throw Error("Invalid argument: "+bp+","+br);
+  if (bp instanceof ZeroTerm) return "0"; //1
+  if (bp instanceof SumTerm){ //2
+    var delta_bp_getLeft_br=delta(bp.getLeft(),br);
+    var delta_bp_getNotLeft_br=delta(bp.getNotLeft(),br);
+    if (lessThan(delta_bp_getLeft_br,delta_bp_getNotLeft_br)) return delta_bp_getNotLeft_br; //2.1
+    else return delta_bp_getLeft_br; //2.2
   }
-  if (bp instanceof PsiTerm) return deg(bp.inner,br); //4
-  throw Error("No rule to compute deg("+bp+","+br+")");
+  if (bp instanceof PsiTerm){ //3
+    if (toNatPlus(bp.sub)<=br) return "0"; //3.1
+    else return bp+""; //3.2
+  }
+  if (bp instanceof ThetaTerm) return delta(bp.inner,br); //4
+  if (bp instanceof OmegaTerm) return delta(bp.inner,br); //5
+  throw Error("No rule to compute δ("+bp+","+br+")");
+}
+/**
+ * @param {Term|string} bp
+ * @param {number} br
+ * @returns {string} Δ(bp,br)
+ */
+function ascend(bp,br){
+  if (!(bp instanceof Term)) bp=new Term(bp);
+  if (!inRT(bp)||typeof br!="number") throw Error("Invalid argument: "+bp+","+br);
+  if (bp instanceof ZeroTerm) return "0"; //1
+  if (bp instanceof SumTerm) return bp.terms.map(function (t){return ascend(t,br);}).join("+"); //2
+  if (bp instanceof PsiTerm){ //3
+    if (toNatPlus(bp.sub)<=br) return bp+""; //3.1
+    else return "θ("+bp.sub+","+ascend(bp.inner,br)+")"; //3.2
+  }
+  if (bp instanceof ThetaTerm) return "θ("+bp.sub+","+ascend(bp.inner,br)+")"; //4
+  if (bp instanceof OmegaTerm) return "Ω("+bp.sub+","+ascend(bp.inner,br)+")"; //5
+  throw Error("No rule to compute Δ("+bp+","+br+")");
 }
 /**
  * @param {Term|string} S
@@ -746,24 +872,17 @@ function dom(S){
   if (!inRT(S)) throw Error("Invalid argument: "+S);
   if (S instanceof ZeroTerm) return "0"; //1
   if (S instanceof SumTerm) return dom(S.getRight()); //2
-  if (S instanceof OmegaTerm){ //3
+  if (S instanceof PsiTerm){ //3
     var dom_S_inner=dom(S.inner);
     var Term_dom_S_inner=new Term(dom_S_inner);
     if (equal(Term_dom_S_inner,Term.ZERO)) return S+""; //3.1
     else if (equal(Term_dom_S_inner,Term.ONE)) return Term.SMALLOMEGA+""; //3.2
     else{ //3.3
-      if (inRTOmega(Term_dom_S_inner)){ //3.3.1
-        if (lessThan(Term_dom_S_inner,S)) return dom_S_inner; //3.3.1.1
-        else return Term.SMALLOMEGA+""; //3.3.1.2
-      }else if (Term_dom_S_inner instanceof PsiTerm){ //3.3.2
-        var dom_Term_dom_S_inner_sub=dom(Term_dom_S_inner.sub);
-        var Term_dom_Term_dom_S_inner_sub=new Term(dom_Term_dom_S_inner_sub);
-        if (lessThan(Term_dom_Term_dom_S_inner_sub,S)) return dom_S_inner; //3.3.2.1
-        else return Term.SMALLOMEGA+""; //3.3.2.2
-      }
+      if (lessThan(Term_dom_S_inner,S)) return dom_S_inner; //3.3.1
+      else return Term.SMALLOMEGA+""; //3.3.2
     }
   }
-  if (S instanceof PsiTerm){ //4
+  if (S instanceof ThetaTerm){ //4
     var dom_S_inner=dom(S.inner);
     var Term_dom_S_inner=new Term(dom_S_inner);
     if (equal(Term_dom_S_inner,Term.ZERO)) return S+""; //4.1
@@ -771,6 +890,21 @@ function dom(S){
     else{ //4.3
       if (lessThan(Term_dom_S_inner,S)) return dom_S_inner; //4.3.1
       else return Term.SMALLOMEGA+""; //4.3.2
+    }
+  }
+  if (S instanceof OmegaTerm){ //5
+    var dom_S_inner=dom(S.inner);
+    var Term_dom_S_inner=new Term(dom_S_inner);
+    if (equal(Term_dom_S_inner,Term.ZERO)){ //5.1
+      var dom_S_sub=dom(S.sub);
+      var Term_dom_S_sub=new Term(dom_S_sub);
+      if (equal(Term_dom_S_sub,Term.ZERO)||equal(Term_dom_S_sub,Term.ONE)) return S+""; //5.1.1
+      else return dom_S_sub; //5.1.2
+    }
+    else if (equal(Term_dom_S_inner,Term.ONE)) return Term.SMALLOMEGA+""; //5.2
+    else{ //5.3
+      if (lessThan(Term_dom_S_inner,S)) return dom_S_inner; //5.3.1
+      else return Term.SMALLOMEGA+""; //5.3.2
     }
   }
   throw Error("No rule to compute dom("+S+")");
@@ -792,86 +926,86 @@ function fund(S,T){
     if (equal(Term_fund_S_getRight_T,Term.ZERO)) return S.getNotRight()+""; //2.1
     else return S.getNotRight()+"+"+fund_S_getRight_T; //2.2
   }
-  if (S instanceof OmegaTerm){ //3
+  if (S instanceof PsiTerm){ //3
     var dom_S_inner=dom(S.inner);
     var Term_dom_S_inner=new Term(dom_S_inner);
     if (equal(Term_dom_S_inner,Term.ZERO)) return T+""; //3.1
     else if (equal(Term_dom_S_inner,Term.ONE)){ //3.2
       var fund_T_0=fund(T,Term.ZERO);
       if (equal(T,fund_T_0+"+"+Term.ONE)) return fund(S,fund_T_0)+"+"+fund(S,Term.ONE); //3.2.1
-      else return "Ω("+S.sub+","+fund(S.inner,Term.ZERO)+")"; //3.2.2
+      else return "ψ("+S.sub+","+fund(S.inner,Term.ZERO)+")"; //3.2.2
     }else{ //3.3
-      if (Term_dom_S_inner instanceof OmegaTerm&&equal(Term_dom_S_inner.inner,Term.ZERO)){ //3.3.1
-        if (lessThan(Term_dom_S_inner,S)) return "Ω("+S.sub+","+fund(S.inner,T)+")"; //3.3.1.1
-        else{ //3.3.1.2
-          var c=toNatPlusNonZero(Term_dom_S_inner.sub);
-          if (c==Infinity){ //3.3.1.2.1
-            if (deg(S.inner,S)==Infinity) return "Ω("+S.sub+","+fund(S.inner,"ψ(Ω("+fund(Term_dom_S_inner.sub,T)+",0),0)")+")"; //3.3.1.2.1.1
-            else return "Ω("+S.sub+","+fund(S.inner,"Ω("+fund(Term_dom_S_inner.sub,T)+",0)")+")"; //3.3.1.2.1.2
-          }else{ //3.3.1.2.2
-            var Term_fund_S_fund_T_0=null;
-            if (equal(dom(T),Term.ONE)&&(Term_fund_S_fund_T_0=new Term(fund(S,fund(T,Term.ZERO)))) instanceof OmegaTerm&&equal(Term_fund_S_fund_T_0.sub,S.sub)) return "Ω("+S.sub+","+fund(S.inner,"Ω("+fund(Term_dom_S_inner.sub,Term.ZERO)+","+Term_fund_S_fund_T_0.inner+")")+")"; //3.3.1.2.2.1
-            else return "Ω("+S.sub+","+fund(S.inner,"Ω("+fund(Term_dom_S_inner.sub,Term.ZERO)+",0)")+")"; //3.3.1.2.2.2
-          }
-        }
-      }
-      if (Term_dom_S_inner instanceof PsiTerm){ //3.3.2
-        var dom_Term_dom_S_inner_sub=dom(Term_dom_S_inner.sub);
-        var Term_dom_Term_dom_S_inner_sub=new Term(dom_Term_dom_S_inner_sub);
-        if (lessThan(Term_dom_Term_dom_S_inner_sub,S)) return "Ω("+S.sub+","+fund(S.inner,T)+")"; //3.3.2.1
-        else{ //3.3.2.2
-          if (!(Term_dom_Term_dom_S_inner_sub instanceof OmegaTerm&&equal(Term_dom_Term_dom_S_inner_sub.inner,Term.ZERO))) throw Error("Assertion failed");
+      if (lessThan(Term_dom_S_inner,S)) return "ψ("+S.sub+","+fund(S.inner,T)+")"; //3.3.1
+      else{ //3.3.2
+        if (Term_dom_S_inner instanceof PsiTerm&&equal(Term_dom_S_inner.inner,Term.ZERO)){ //3.3.2.1
           var Term_fund_S_fund_T_0=null;
-          if (equal(dom(T),Term.ONE)&&(Term_fund_S_fund_T_0=new Term(fund(S,fund(T,Term.ZERO)))) instanceof OmegaTerm&&equal(Term_fund_S_fund_T_0.sub,S.sub)) return "Ω("+S.sub+","+fund(S.inner,"ψ("+fund(Term_dom_S_inner.sub,"Ω("+fund(Term_dom_Term_dom_S_inner_sub.sub,Term.ZERO)+",0)")+","+Term_fund_S_fund_T_0.inner+")")+")"; //3.3.2.2.1
-          else return "Ω("+S.sub+","+fund(S.inner,"ψ("+fund(Term_dom_S_inner.sub,"Ω("+fund(Term_dom_Term_dom_S_inner_sub.sub,Term.ZERO)+",0)")+",0)")+")"; //3.3.2.2.2
+          if (equal(dom(T),Term.ONE)&&(Term_fund_S_fund_T_0=new Term(fund(S,fund(T,Term.ZERO)))) instanceof PsiTerm&&equal(Term_fund_S_fund_T_0.sub,S.sub)) return "ψ("+S.sub+","+fund(S.inner,"ψ("+fund(Term_dom_S_inner.sub,Term.ZERO)+","+Term_fund_S_fund_T_0.inner+")")+")"; //3.3.2.1.1
+          else return "ψ("+S.sub+","+fund(S.inner,"ψ("+fund(Term_dom_S_inner.sub,Term.ZERO)+",0)")+")"; //3.3.2.1.2
+        }
+        if (Term_dom_S_inner instanceof ThetaTerm&&equal(Term_dom_S_inner.inner,Term.ZERO)){ //3.3.2.2
+          var Term_fund_S_fund_T_0=null;
+          if (equal(dom(T),Term.ONE)&&(Term_fund_S_fund_T_0=new Term(fund(S,fund(T,Term.ZERO)))) instanceof PsiTerm&&equal(Term_fund_S_fund_T_0.sub,S.sub)) return "ψ("+S.sub+","+fund(S.inner,"ψ("+S.sub+","+Term_fund_S_fund_T_0.inner+")")+")"; //3.3.2.2.1
+          else return "ψ("+S.sub+","+fund(S.inner,"ψ("+S.sub+",0)")+")"; //3.3.2.2.2
+        }
+        if (Term_dom_S_inner instanceof OmegaTerm&&equal(Term_dom_S_inner.inner,Term.ZERO)){ //3.3.2.3
+          var toNatPlus_S_sub=toNatPlus(S.sub);
+          if (equal(delta(S.inner,toNatPlus_S_sub),Term.ZERO)){ //3.3.2.3.1
+            var Term_fund_S_fund_T_0=null;
+            if (equal(dom(T),Term.ONE)&&(Term_fund_S_fund_T_0=new Term(fund(S,fund(T,Term.ZERO)))) instanceof PsiTerm&&equal(Term_fund_S_fund_T_0.sub,S.sub)) return "ψ("+S.sub+","+fund(S.inner,"ψ("+fund(Term_dom_S_inner.sub,Term.ZERO)+","+Term_fund_S_fund_T_0.inner+")")+")"; //3.3.2.3.1.1
+            else return "ψ("+S.sub+","+fund(S.inner,"ψ("+fund(Term_dom_S_inner.sub,Term.ZERO)+",0)")+")"; //3.3.2.3.1.2
+          }else{ //3.3.2.3.2
+            if (0){
+            var Term_fund_S_fund_T_0=null;
+            if (equal(dom(T),Term.ONE)&&(Term_fund_S_fund_T_0=new Term(fund(S,fund(T,Term.ZERO)))) instanceof PsiTerm&&equal(Term_fund_S_fund_T_0.sub,S.sub)) return "ψ("+S.sub+","+fund(S.inner,"ψ("+fund(Term_dom_S_inner.sub,Term.ZERO)+","+ascend(Term_fund_S_fund_T_0.inner,toNatPlus_S_sub)+")")+")"; //3.3.2.3.2.1
+            else return "ψ("+S.sub+","+fund(S.inner,"ψ("+fund(Term_dom_S_inner.sub,Term.ZERO)+",0)")+")"; //3.3.2.3.2.2
+            }
+
+            var Term_fund_S_fund_T_0=null;
+            var Term_fund_S_0=null;
+            if (equal(dom(T),Term.ONE)&&(Term_fund_S_fund_T_0=new Term(fund(S,fund(T,Term.ZERO)))) instanceof PsiTerm&&equal(Term_fund_S_fund_T_0.sub,S.sub)&&(Term_fund_S_0=new Term(fund(S,Term.ZERO))) instanceof PsiTerm&&equal(Term_fund_S_0.sub,S.sub)) return "ψ("+S.sub+","+fund(Term_fund_S_fund_T_0.inner,"ψ("+fund(Term_dom_S_inner.sub,Term.ZERO)+","+ascend(Term_fund_S_0.inner,toNatPlus_S_sub)+")")+")"; //3.3.2.3.2.1
+            else return "ψ("+S.sub+","+fund(S.inner,"ψ("+fund(Term_dom_S_inner.sub,Term.ZERO)+",0)")+")"; //3.3.2.3.2.2
+          }
         }
       }
     }
   }
-  if (S instanceof PsiTerm){ //4
+  if (S instanceof ThetaTerm){ //4
     var dom_S_inner=dom(S.inner);
     var Term_dom_S_inner=new Term(dom_S_inner);
     if (equal(Term_dom_S_inner,Term.ZERO)) return T+""; //4.1
     else if (equal(Term_dom_S_inner,Term.ONE)){ //4.2
       var fund_T_0=fund(T,Term.ZERO);
       if (equal(T,fund_T_0+"+"+Term.ONE)) return fund(S,fund_T_0)+"+"+fund(S,Term.ONE); //4.2.1
-      else return "ψ("+S.sub+","+fund(S.inner,Term.ZERO)+")"; //4.2.2
+      else return "θ("+S.sub+","+fund(S.inner,Term.ZERO)+")"; //4.2.2
     }else{ //4.3
-      if (lessThan(Term_dom_S_inner,S)) return "ψ("+S.sub+","+fund(S.inner,T)+")"; //4.3.1
+      if (lessThan(Term_dom_S_inner,S)) return "θ("+S.sub+","+fund(S.inner,T)+")"; //4.3.1
       else{ //4.3.2
-        if (Term_dom_S_inner instanceof OmegaTerm&&equal(Term_dom_S_inner.inner,Term.ZERO)){ //4.3.2.1
-          var c=toNatPlusNonZero(Term_dom_S_inner.sub);
-          if (c==Infinity){ //4.3.2.1.1
-            if (deg(S.inner,dom(S.sub))==Infinity) return "ψ("+S.sub+","+fund(S.inner,"ψ(Ω("+fund(Term_dom_S_inner.sub,T)+",0),0)")+")"; //4.3.2.1.1.1
-            else return "ψ("+S.sub+","+fund(S.inner,"Ω("+fund(Term_dom_S_inner.sub,T)+",0)")+")"; //4.3.2.1.1.2
-          }else{ //4.3.2.1.2
-            if (lessThan(dom(S.sub),Term_dom_S_inner)&&c!=1){ //4.3.2.1.2.1
-              var Term_fund_S_fund_T_0=null;
-              if (equal(dom(T),Term.ONE)&&(Term_fund_S_fund_T_0=new Term(fund(S,fund(T,Term.ZERO)))) instanceof PsiTerm&&equal(Term_fund_S_fund_T_0.sub,S.sub)) return "ψ("+S.sub+","+fund(S.inner,"Ω("+fund(Term_dom_S_inner.sub,Term.ZERO)+","+Term_fund_S_fund_T_0.inner+")")+")"; //4.3.2.1.2.1.1
-              else return "ψ("+S.sub+","+fund(S.inner,"Ω("+fund(Term_dom_S_inner.sub,Term.ZERO)+",0)")+")"; //4.3.2.1.2.1.2
-            }else{ //4.3.2.1.2.2
-              var Term_fund_S_fund_T_0=null;
-              if (equal(dom(T),Term.ONE)&&(Term_fund_S_fund_T_0=new Term(fund(S,fund(T,Term.ZERO)))) instanceof PsiTerm&&equal(Term_fund_S_fund_T_0.sub,S.sub)) return "ψ("+S.sub+","+fund(S.inner,"ψ("+S.sub+","+Term_fund_S_fund_T_0.inner+")")+")"; //4.3.2.1.2.2.1
-              else return "ψ("+S.sub+","+fund(S.inner,"ψ("+S.sub+",0)")+")"; //4.3.2.1.2.2.2
-            }
-          }
-        }
-        if (Term_dom_S_inner instanceof PsiTerm&&equal(Term_dom_S_inner.inner,Term.ZERO)){
-          var dom_Term_dom_S_inner_sub=dom(Term_dom_S_inner.sub);
-          var Term_dom_Term_dom_S_inner_sub=new Term(dom_Term_dom_S_inner_sub);
-          if (Term_dom_Term_dom_S_inner_sub instanceof OmegaTerm){ //4.3.2.2
-            var d=toNatPlusNonZero(Term_dom_Term_dom_S_inner_sub.sub);
-            if (d==1){ //4.3.2.2.1
-              var Term_fund_S_fund_T_0=null;
-              if (equal(dom(T),Term.ONE)&&(Term_fund_S_fund_T_0=new Term(fund(S,fund(T,Term.ZERO)))) instanceof PsiTerm&&equal(Term_fund_S_fund_T_0.sub,S.sub)) return "ψ("+S.sub+","+fund(S.inner,"ψ("+fund(Term_dom_S_inner.sub,Term.ZERO)+","+Term_fund_S_fund_T_0.inner+")")+")"; //4.3.2.2.1.1
-              else return "ψ("+S.sub+","+fund(S.inner,"ψ("+fund(Term_dom_S_inner.sub,Term.ZERO)+",0)")+")"; //4.3.2.2.1.2
-            }else{ //4.3.2.2.2
-              var Term_fund_S_fund_T_0=null;
-              if (equal(dom(T),Term.ONE)&&(Term_fund_S_fund_T_0=new Term(fund(S,fund(T,Term.ZERO)))) instanceof PsiTerm&&equal(Term_fund_S_fund_T_0.sub,S.sub)) return "ψ("+S.sub+","+fund(S.inner,"ψ("+fund(Term_dom_S_inner.sub,"Ω("+fund(Term_dom_Term_dom_S_inner_sub.sub,Term.ZERO)+",0)")+","+Term_fund_S_fund_T_0.inner+")")+")"; //4.3.2.2.2.1
-              else return "ψ("+S.sub+","+fund(S.inner,"ψ("+fund(Term_dom_S_inner.sub,"Ω("+fund(Term_dom_Term_dom_S_inner_sub.sub,Term.ZERO)+",0)")+",0)")+")"; //4.3.2.2.2.2
-            }
-          }
-        }
+        if (!((Term_dom_S_inner instanceof ThetaTerm||Term_dom_S_inner instanceof OmegaTerm)&&isNatNonZero(Term_dom_S_inner.sub)&&equal(Term_dom_S_inner.inner,Term.ZERO))) throw Error("Failed assertion");
+        var Term_fund_S_fund_T_0=null;
+        if (equal(dom(T),Term.ONE)&&(Term_fund_S_fund_T_0=new Term(fund(S,fund(T,Term.ZERO)))) instanceof ThetaTerm&&equal(Term_fund_S_fund_T_0.sub,S.sub)) return "θ("+S.sub+","+fund(S.inner,"θ("+fund(Term_dom_S_inner.sub,Term.ZERO)+","+Term_fund_S_fund_T_0.inner+")")+")"; //4.3.2.1
+        else return "θ("+S.sub+","+fund(S.inner,"θ("+fund(Term_dom_S_inner.sub,Term.ZERO)+",0)")+")"; //4.3.2.2
+      }
+    }
+  }
+  if (S instanceof OmegaTerm){ //5
+    var dom_S_inner=dom(S.inner);
+    var Term_dom_S_inner=new Term(dom_S_inner);
+    if (equal(Term_dom_S_inner,Term.ZERO)){ //5.1
+      var dom_S_sub=dom(S.sub);
+      var Term_dom_S_sub=new Term(dom_S_sub);
+      if (equal(Term_dom_S_sub,Term.ZERO)||equal(Term_dom_S_sub,Term.ONE)) return T+""; //5.1.1
+      else return "Ω("+fund(S.sub,T)+","+S.inner+")"; //5.1.2
+    }else if (equal(Term_dom_S_inner,Term.ONE)){ //5.2
+      var fund_T_0=fund(T,Term.ZERO);
+      if (equal(T,fund_T_0+"+"+Term.ONE)) return fund(S,fund_T_0)+"+"+fund(S,Term.ONE); //5.2.1
+      else return "Ω("+S.sub+","+fund(S.inner,Term.ZERO)+")"; //5.2.2
+    }else{ //5.3
+      if (lessThan(Term_dom_S_inner,S)) return "Ω("+S.sub+","+fund(S.inner,T)+")"; //5.3.1
+      else{ //5.3.2
+        if (!(Term_dom_S_inner instanceof OmegaTerm&&isNatNonZero(Term_dom_S_inner.sub)&&equal(Term_dom_S_inner.inner,Term.ZERO))) throw Error("Failed assertion");
+        var Term_fund_S_fund_T_0=null;
+        if (equal(dom(T),Term.ONE)&&(Term_fund_S_fund_T_0=new Term(fund(S,fund(T,Term.ZERO)))) instanceof ThetaTerm&&equal(Term_fund_S_fund_T_0.sub,S.sub)) return "Ω("+S.sub+","+fund(S.inner,"Ω("+fund(Term_dom_S_inner.sub,Term.ZERO)+","+Term_fund_S_fund_T_0.inner+")")+")"; //5.3.2.1
+        else return "Ω("+S.sub+","+fund(S.inner,"Ω("+fund(Term_dom_S_inner.sub,Term.ZERO)+",0)")+")"; //5.3.2.2
       }
     }
   }
@@ -902,108 +1036,73 @@ function FGH(S,m,n){
 function limitOrd(n){
   return "ψ(0,"+(n==0?"0":("Ω("+Term.SMALLOMEGA+",").repeat(n)+"0"+")".repeat(n))+")";
 }
-function findOTPath(x,limit){
-  if (!(x instanceof Term)) x=new Term(x);
-  if (!inT(x)) throw Error("Invalid argument: "+x);
-  if (typeof limit=="undefined"||limit==-1) limit=Infinity;
-  if (equal(x,Term.ZERO)){
-    return {isStandard:true,path:["0"],funds:[-1]};
-  }else{
-    var n=0;
-    var t;
-    while(n<=limit&&!(equal(x,t=limitOrd(n))||lessThan(x,t))){
-      n++;
-    };
-    if (n>limit) return {isStandard:false,path:[],funds:[]};
-    t=limitOrd(n);
-    // console.log(t);
-    var r={isStandard:false,path:[t],funds:[n]};
-    while (!equal(x,t)){
-      n=0;
-      var nt;
-      while (n<=limit&&lessThan(nt=fund(t,n),x)) n++;
-      if (n>limit) return r;
-      r.path.push(t=nt);
-      r.funds.push(n);
-      // console.log(nt);
-    }
-    r.isStandard=true;
-    return r;
-  }
-}
-function isStandard(x,limit){
-  return findOTPath(x,limit).isStandard;
-}
 
 /** @type {[string,number,string?][]} */
 var testTerms=[
-  ["ω",3
-  ,"3"],
+  ["ω",3],
   ["ψ_0(2)",3],
   ["ψ_0(ω)",3],
   ["ψ_0(Ω_1(0))",3],
-  ["ψ_0(Ω_1(0)+1)",-1],
-  ["ψ_0(Ω_1(0)+ψ_0(Ω_1(0)))",3],
-  ["ψ_0(Ω_1(0)+Ω_1(0))",3],
-  ["ψ_0(Ω_1(1))",-1],
-  ["ψ_0(Ω_1(ψ_0(Ω_1(0))))",3],
-  ["ψ_0(Ω_1(Ω_1(0)))",3],
+  ["ψ_0(ψ_1(0))",-1],
+  ["ψ_0(ψ_1(0)+1)",-1],
+  ["ψ_0(ψ_1(0)+ψ_0(ψ_1(0)))",3],
+  ["ψ_0(ψ_1(0)+ψ_1(0))",3],
+  ["ψ_0(ψ_1(1))",-1],
+  ["ψ_0(ψ_1(ψ_0(ψ_1(0))))",3],
+  ["ψ_0(ψ_1(ψ_1(0)))",3],
   ["ψ_0(Ω_2(0))",3],
-  ["ψ_0(Ω_2(0)+ψ_0(Ω_2(0)))",3],
-  ["ψ_0(Ω_2(0)+Ω_1(0))",3],
-  ["ψ_0(Ω_2(0)+Ω_1(Ω_2(0)))",3],
-  ["ψ_0(Ω_2(0)+Ω_1(Ω_2(0)+Ω_1(0)))",3],
-  ["ψ_0(Ω_2(0)+Ω_2(0))",3],
-  ["ψ_0(Ω_2(1))",-1],
-  ["ψ_0(Ω_2(ψ_0(Ω_2(0))))",-1],
-  ["ψ_0(Ω_2(Ω_1(0)))",-1],
-  ["ψ_0(Ω_2(Ω_2(0)))",-1],
+  ["ψ_0(ψ_2(0))",3],
+  ["ψ_0(ψ_2(0)+ψ_0(ψ_2(0)))",3],
+  ["ψ_0(ψ_2(0)+ψ_1(0))",3],
+  ["ψ_0(ψ_2(0)+ψ_1(ψ_2(0)))",3],
+  ["ψ_0(ψ_2(0)+ψ_1(ψ_2(0)+ψ_1(0)))",3],
+  ["ψ_0(ψ_2(0)+ψ_2(0))",3],
+  ["ψ_0(ψ_2(1))",-1],
+  ["ψ_0(ψ_2(ψ_0(ψ_2(0))))",-1],
+  ["ψ_0(ψ_2(ψ_1(0)))",-1],
+  ["ψ_0(ψ_2(ψ_2(0)))",-1],
   ["ψ_0(Ω_3(0))",3],
-  ["ψ_0(Ω_ω(0))",3,"ψ_0(Ω_3(0))"],
-  ["ψ_0(Ω_ω(0)+Ω_1(0))",3
-  ,"ψ_0(Ω_ω(0)+ψ_0(Ω_ω(0)+ψ_0(Ω_ω(0)+ψ_0(Ω_ω(0)+1))))"],
-  ["ψ_0(Ω_ω(0)+Ω_2(0))",3
-  ,"ψ_0(Ω_ω(0)+Ω_1(Ω_ω(0)+Ω_1(Ω_ω(0)+Ω_1(Ω_ω(0)+1))))"],
-  ["ψ_0(Ω_ω(0)+Ω_ω(0))",3],
-  ["ψ_0(Ω_ω(1))",-1],
+  ["ψ_0(ψ_3(0))",3],
+  ["ψ_0(Ω_ω(0))",3],
   ["ψ_0(Ω_ω(Ω_1(0)))",3],
-  ["ψ_0(Ω_ω(Ω_1(0))+ψ_Ω_1(0)(0))",3
-  ,"ψ_0(Ω_ω(Ω_1(0))+ψ_Ω_1(0)(ψ_Ω_1(0)(ψ_Ω_1(0)(ψ_Ω_1(0)(ψ_Ω_1(0)(0))))))"],
-  ["ψ_0(Ω_ω(Ω_1(0))+ψ_Ω_1(0)(Ω_1(0)))",3
-  ,"ψ_0(Ω_ω(Ω_1(0))+ψ_Ω_1(0)(ψ_Ω_1(0)(ψ_Ω_1(0)(ψ_Ω_1(0)(ψ_Ω_1(0)(0))))))"],
-  ["ψ_0(Ω_ω(Ω_1(0))+ψ_Ω_1(0)(Ω_1(0)+Ω_1(0)))",-3
-  ,"ψ_0(Ω_ω(Ω_1(0))+ψ_Ω_1(0)(Ω_1(0)+ψ_Ω_1(0)(Ω_1(0)+ψ_Ω_1(0)(Ω_1(0)+ψ_Ω_1(0)(Ω_1(0)+ψ_Ω_1(0)(0))))))"],
-  ["ψ_0(Ω_ω(Ω_1(0))+ψ_Ω_1(0)(Ω_2(0)))",3
-  ,"ψ_0(Ω_ω(Ω_1(0))+ψ_Ω_1(0)(Ω_1(Ω_1(Ω_1(Ω_1(0))))))"],
-  ["ψ_0(Ω_ω(Ω_1(0))+ψ_Ω_1(0)(Ω_ω(0)))",-3
-  ,"ψ_0(Ω_ω(Ω_1(0))+ψ_Ω_1(0)(Ω_3(0)))"],
-  ["ψ_0(Ω_ω(Ω_1(0))+ψ_Ω_1(0)(Ω_ω(0)+Ω_1(0)))",3],
-  ["ψ_0(Ω_ω(Ω_1(0))+ψ_Ω_1(0)(Ω_ω(ψ_Ω_1(0)(0))))",-1],
-  ["ψ_0(Ω_ω(Ω_1(0))+ψ_Ω_1(0)(Ω_ω(ψ_Ω_1(0)(0))+Ω_1(0)))",3],
-  ["ψ_0(Ω_ω(Ω_1(0))+ψ_Ω_1(0)(Ω_ω(ψ_Ω_1(0)(0))+Ω_ω(0)))",3],
-  ["ψ_0(Ω_ω(Ω_1(0))+ψ_Ω_1(0)(Ω_ω(ψ_Ω_1(0)(0))+Ω_ω(ψ_Ω_1(0)(0))))",-1],
-  ["ψ_0(Ω_ω(Ω_1(0))+ψ_Ω_1(0)(Ω_ω(ψ_Ω_1(0)(0)+1)))",-1],
-  ["ψ_0(Ω_ω(Ω_1(0))+ψ_Ω_1(0)(Ω_ω(ψ_Ω_1(0)(0)+ψ_Ω_1(0)(0))))",-1],
-  ["ψ_0(Ω_ω(Ω_1(0))+ψ_Ω_1(0)(Ω_ω(Ω_1(0))))",-3
-  ,"ψ_0(Ω_ω(Ω_1(0))+ψ_Ω_1(0)(Ω_ω(ψ_Ω_1(0)(Ω_ω(ψ_Ω_1(0)(Ω_ω(ψ_Ω_1(0)(Ω_ω(ψ_Ω_1(0)(0))))))))))"],
-  ["ψ_0(Ω_ω(Ω_1(0))+ψ_Ω_1(0)(Ω_ω(Ω_1(0)))+ψ_Ω_1(0)(Ω_ω(Ω_1(0))))",3],
-  ["ψ_0(Ω_ω(Ω_1(0))+ψ_Ω_2(0)(0))",3],
-  ["ψ_0(Ω_ω(Ω_1(0))+ψ_Ω_2(0)(Ω_2(0)))",3],
-  ["ψ_0(Ω_ω(Ω_1(0))+ψ_Ω_2(0)(Ω_3(0)))",3],
-  ["ψ_0(Ω_ω(Ω_1(0))+ψ_Ω_2(0)(Ω_ω(ψ_Ω_2(0)(0))))",-1],
-  ["ψ_0(Ω_ω(Ω_1(0))+ψ_Ω_2(0)(Ω_ω(Ω_1(0))))",-1],
-  ["ψ_0(Ω_ω(Ω_1(0))+Ω_ω(0))",-3
-  ,"ψ_0(Ω_ω(Ω_1(0))+ψ_Ω_3(0)(0))"],
-  ["ψ_0(Ω_ω(Ω_1(0))+Ω_ω(Ω_1(0))+ψ_Ω_1(0)(Ω_ω(Ω_1(0))+Ω_ω(ψ_Ω_1(0)(0))))",-1],
-  ["ψ_0(Ω_ω(Ω_1(0)+1)+ψ_Ω_2(0)(0))",3],
+  ["ψ_0(Ω_ω(ψ_1(0)))",3],
+  ["ψ_0(Ω_ω(ψ_1(0))+Ω_1(0))",3],
+  ["ψ_0(Ω_ω(ψ_1(0))+ψ_1(0))",3],
+  ["ψ_0(Ω_ω(ψ_1(0))+ψ_1(Ω_ω(θ_1(0))))",3
+  ,"ψ_0(Ω_ω(ψ_1(0))+ψ_1(Ω_ω(ψ_1(Ω_ω(ψ_1(Ω_ω(ψ_1(Ω_ω(ψ_1(0))))))))))"],
+  ["ψ_0(Ω_ω(ψ_1(0))+ψ_1(Ω_ω(θ_1(0))+ψ_1(0)))",3],
+  ["ψ_0(Ω_ω(ψ_1(0))+ψ_1(Ω_ω(θ_1(0))+θ_1(0)))",3],
+  ["ψ_0(Ω_ω(ψ_1(0))+Ω_2(0))",3
+  ,"ψ_0(Ω_ω(ψ_1(0))+ψ_1(Ω_ω(θ_1(0))+ψ_1(Ω_ω(θ_1(0))+θ_1(0))))"],
+  ["ψ_0(Ω_ω(ψ_1(0))+ψ_1(Ω_ω(ψ_1(0))))",3],
+  ["ψ_0(Ω_ω(ψ_1(0))+ψ_1(Ω_ω(ψ_1(0))+ψ_1(0)))",3],
+  ["ψ_0(Ω_ω(ψ_1(0))+ψ_2(0))",3],
+  ["ψ_0(Ω_ω(ψ_1(0))+ψ_2(Ω_ω(θ_1(0))))",3],
+  ["ψ_0(Ω_ω(ψ_1(0))+Ω_3(0))",3],
+  ["ψ_0(Ω_ω(ψ_1(0))+Ω_ω(0))",-1],
+  ["ψ_0(Ω_ω(ψ_1(0))+Ω_ω(0)+ψ_1(Ω_ω(ψ_1(0))+ψ_1(0)))",3],
+  ["ψ_0(Ω_ω(ψ_1(0))+Ω_ω(0)+ψ_1(Ω_ω(ψ_1(0))+Ω_2(0)))",3],
+  ["ψ_0(Ω_ω(ψ_1(0))+Ω_ω(0)+ψ_1(Ω_ω(θ_1(0))+ψ_1(0)))",3],
+  ["ψ_0(Ω_ω(ψ_1(0))+Ω_ω(0)+ψ_1(Ω_ω(θ_1(0))+Ω_2(0)))",3],
+  ["ψ_0(Ω_ω(ψ_1(Ω_1(0))))",3],
+  ["ψ_0(Ω_ω(ψ_1(ψ_1(0))))",3],
+  ["ψ_0(Ω_ω(ψ_1(Ω_2(0))))",3],
+  ["ψ_0(Ω_ω(ψ_1(ψ_2(0))))",3],
+  ["ψ_0(Ω_ω(ψ_1(Ω_ω(0))))",3],
   ["ψ_0(Ω_ω(Ω_2(0)))",3],
-  ["ψ_0(Ω_ω(Ω_2(0))+ψ_Ω_1(0)(Ω_ω(ψ_Ω_1(0)(0))))",-1],
-  ["ψ_0(Ω_ω(Ω_2(0))+ψ_Ω_1(0)(Ω_ω(Ω_1(0))))",3],
-  ["ψ_0(Ω_ω(Ω_2(0))+ψ_Ω_1(0)(Ω_ω(Ω_2(0))))",3],
-  ["ψ_0(Ω_ω(Ω_2(0))+ψ_Ω_2(0)(Ω_ω(ψ_Ω_1(0)(0))))",-1],
-  ["ψ_0(Ω_ω(Ω_2(0))+ψ_Ω_2(0)(Ω_ω(ψ_Ω_2(0)(0))))",3],
-  ["ψ_0(Ω_ω(Ω_2(0))+ψ_Ω_2(0)(Ω_ω(Ω_2(0))))",3],
-  ["ψ_0(Ω_ω(Ω_ω(0)))",3]
+  ["ψ_0(Ω_ω(ψ_2(0))+ψ_0(Ω_ω(ψ_2(0))))",3],
+  ["ψ_0(Ω_ω(ψ_2(0))+ψ_1(0))",3],
+  ["ψ_0(Ω_ω(ψ_2(0))+ψ_1(Ω_ω(θ_2(0))))",3],
+  ["ψ_0(Ω_ω(ψ_2(0))+ψ_1(Ω_ω(θ_2(0))+ψ_1(0)))",3],
+  ["ψ_0(Ω_ω(ψ_2(0))+ψ_1(Ω_ω(θ_2(0))+θ_1(0)))",3],
+  ["ψ_0(Ω_ω(ψ_2(0))+Ω_2(0))",3],
+  ["ψ_0(Ω_ω(ψ_2(0))+ψ_1(Ω_ω(ψ_2(0))+ψ_1(0)))",3],
+  ["ψ_0(Ω_ω(ψ_2(0))+ψ_1(Ω_ω(ψ_2(0))))",3],
+  ["ψ_0(Ω_ω(ψ_2(0))+ψ_2(0))",3],
+  ["ψ_0(Ω_ω(ψ_2(0))+ψ_2(Ω_ω(θ_2(0))))",3],
+  ["ψ_0(Ω_ω(ψ_2(0))+Ω_3(0))",3],
+  ["ψ_0(Ω_ω(ψ_2(0))+Ω_ω(0)+ψ_1(Ω_ω(ψ_2(0))+Ω_2(0)))",3],
+  ["ψ_0(Ω_ω(ψ_2(0))+Ω_ω(0)+ψ_1(Ω_ω(θ_2(0))+Ω_2(0)))",3],
 ];
 function setupTestTerms(){
   document.getElementById('input').value=testTerms.filter(function (t){return t[1]>=0;}).map(function(t){return "fund "+t[0]+" "+t[1];}).join("\n");
@@ -1011,59 +1110,7 @@ function setupTestTerms(){
 /** @param {boolean} logInfoToConsole */
 function testFunction(logInfoToConsole){
   var testTermsOnly=testTerms.map(function (t){return t[0];});
-  var r={lessThan:[],inOT:[],fund:[],errors:[]};
-  for (var i=0;i<testTermsOnly.length;i++){
-    for (var j=0;j<testTermsOnly.length;j++){
-      if (logInfoToConsole) console.log("%cTesting: lessThan, "+testTermsOnly[i]+", "+testTermsOnly[j]+".","color:gold");
-      var d=Date.now();
-      var caught=false;
-      var result;
-      try{
-        result=lessThan(testTermsOnly[i],testTermsOnly[j]);
-      }catch(e){
-        var diff=Date.now()-d;
-        r.lessThan.push({arg0:testTermsOnly[i],arg1:testTermsOnly[j],result:e,time:diff});
-        r.errors.push({test:"lessThan",arg0:testTermsOnly[i],arg1:testTermsOnly[j],name:"error",content:e});
-        console.error(e);
-        var caught=true;
-      }finally{
-        var diff=Date.now()-d;
-        if (!caught){
-          r.lessThan.push({arg0:testTermsOnly[i],arg1:testTermsOnly[j],result:result,time:diff});
-          if (logInfoToConsole) console.log(diff);
-          if (result!=(i<j)){
-            r.errors.push({test:"lessThan",arg0:testTermsOnly[i],arg1:testTermsOnly[j],name:"fail"});
-            console.error("Failed test: lessThan, "+testTermsOnly[i]+", "+testTermsOnly[j]+", expected "+(i<j)+".");
-          }
-        }
-      }
-    }
-  }
-  for (var i=0;i<testTermsOnly.length;i++){
-    if (logInfoToConsole) console.log("%cTesting: inOT, "+testTermsOnly[i]+".","color:gold");
-    var d=Date.now();
-    var caught=false;
-    var result;
-    try{
-      result=isStandard(testTermsOnly[i],10);
-    }catch(e){
-      var diff=Date.now()-d;
-      r.inOT.push({arg0:testTermsOnly[i],result:e,time:diff});
-      r.errors.push({test:"inOT",arg0:testTermsOnly[i],name:"error",content:e});
-      console.error(e);
-      caught=true;
-    }finally{
-      var diff=Date.now()-d;
-      if (!caught){
-        r.inOT.push({arg0:testTermsOnly[i],result:result,time:diff});
-        if (logInfoToConsole) console.log(diff);
-        if (!result){
-          r.errors.push({test:"inOT",arg0:testTermsOnly[i],name:"fail"});
-          console.error("Failed test: inOT, "+testTermsOnly[i]+".");
-        }
-      }
-    }
-  }
+  var r={fund:[],errors:[]};
   for (var i=0;i<testTerms.length;i++){
     if (testTerms[i][2]==null) continue;
     if (logInfoToConsole) console.log("%cTesting: fund, "+testTerms[i].join(","),"color:gold");
@@ -1129,8 +1176,9 @@ var abbreviateOptionList=[
   "1",
   "n",
   "ω",
-  "2Ω",
   "2ψ",
+  "2θ",
+  "2Ω",
   "1ψ"
 ];
 function toggleOptions(){
@@ -1178,14 +1226,14 @@ function compute(){
           result=inT(args[0]);
         }else if (cmd=="inPT"){
           result=inPT(args[0]);
-        }else if (cmd=="inRTOmega"){
-          result=inRTOmega(args[0]);
         }else if (cmd=="inRT"){
           result=inRT(args[0]);
         }else if (cmd=="inRPT"){
           result=inRPT(args[0]);
-        }else if (cmd=="deg"){
-          result=deg(args[0],args[1]);
+        }else if (cmd=="delta"||cmd=="δ"){
+          result=delta(args[0],toNatPlus(args[1]));
+        }else if (cmd=="ascend"||cmd=="Δ"){
+          result=ascend(args[0],toNatPlus(args[1]));
         }else if (cmd=="dom"){
           result=dom(args[0]);
         }else if (cmd=="fund"||cmd=="expand"){
@@ -1194,8 +1242,6 @@ function compute(){
           for (var i=1;i<args.length;i++){
             result.push(t=fund(t,args[i]));
           }
-        }else if (cmd=="inOT"||cmd=="isStandard"){
-          result=findOTPath(args[0],args[1]||3);
         }else{
           result=null;
         }
@@ -1216,13 +1262,13 @@ function compute(){
       output+=result;
     }else if (cmd=="inPT"){
       output+=result;
-    }else if (cmd=="inRTOmega"){
-      output+=result;
     }else if (cmd=="inRT"){
       output+=result;
     }else if (cmd=="inRPT"){
       output+=result;
-    }else if (cmd=="deg"){
+    }else if (cmd=="delta"||cmd=="δ"){
+      output+=abbreviateIfEnabled(result);
+    }else if (cmd=="ascend"||cmd=="Δ"){
       output+=abbreviateIfEnabled(result);
     }else if (cmd=="dom"){
       output+=abbreviateIfEnabled(result);
@@ -1233,16 +1279,6 @@ function compute(){
         }
       }else{
         output+=abbreviateIfEnabled(result[result.length-1]);
-      }
-    }else if (cmd=="inOT"||cmd=="isStandard"){
-      if (options.detail){
-        for (var i=1;i<result.path.length;i++){
-          output+=abbreviateIfEnabled(result.path[i-1])+"["+result.funds[i]+"]="+abbreviateIfEnabled(result.path[i])+"\n";
-        }
-        if (result.isStandard) output+=abbreviateIfEnabled(args[0])+"∈OT";
-        else output+=abbreviateIfEnabled(args[0])+"∉OT limited to n≦"+(args[1]||3);
-      }else{
-        output+=result.isStandard;
       }
     }else{
       output+="Unknown command "+cmd;

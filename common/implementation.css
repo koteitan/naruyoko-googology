@@ -1,5 +1,5 @@
 body {
-  font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family:"Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 .inputbox {
   width:calc(100% - 8px);
@@ -9,7 +9,7 @@ body {
   margin:0;
   border:1px solid black;
   resize:both;
-  font-family:'Courier New', Courier, monospace;
+  font-family:"Noto Sans Mono", "Consolas", monospace;
   font-size:13.5px;
   padding:4px;
 }
@@ -21,7 +21,7 @@ body {
   margin:0;
   border:1px solid black;
   resize:both;
-  font-family:'Courier New', Courier, monospace;
+  font-family:"Noto Sans Mono", "Consolas", monospace;
   font-size:13.5px;
   padding:4px;
 }
