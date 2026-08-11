@@ -711,7 +711,7 @@ function timesBuchholz(a,n){
  * @returns {BuchholzTerm[]}
  */
 function G(a,u){
-  if (a instanceof Array) return a.flatMap(G);
+  if (a instanceof Array) return a.flatMap(function(e){return G(e,u);});
   else if (a instanceof Object) return u<=a.sub?[a.inner].concat(G(a.inner,u)):[];
   else return [];
 }
